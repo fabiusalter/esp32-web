@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard DHT11 Remoto</title>
+    <style>
+        /* CSS: Stile per rendere la dashboard pulita e leggibile */
+        body { font-family: 'Arial', sans-serif; text-align: center; padding: 20px; background-color: #f4f7f6; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .data-box { border: 2px solid #0070f3; padding: 15px; margin: 15px 0; border-radius: 8px; }
+        h1 { color: #0070f3; }
+        h2 { margin-top: 0; color: #333; }
+        p { font-size: 1.5em; font-weight: bold; color: #1e1e1e; }
+        .update-info { margin-top: 20px; font-size: 0.8em; color: #666; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Monitoraggio DHT11</h1>
+
+        <div class="data-box">
+            <h2>🌡️ Temperatura:</h2>
+            <p id="temp-display">Attendere...</p> 
+        </div>
+
+        <div class="data-box">
+            <h2>💧 Umidità:</h2>
+            <p id="hum-display">Attendere...</p>
+        </div>
+
+        <div class="update-info">
+            Ultimo aggiornamento: <span id="last-update">...</span>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // === 1. SOSTITUISCI QUESTI VALORI CON LE TUE CREDENZIALI ===
+        // =========================================================
+        
+        // Esempio: "https://xyz123.supabase.co" NON dimenticare "https://"
+        const SUPABASE_PROJECT_URL = "https://ubtqemsacozfmlfzwhyz.supabase.co"; 
+        
+        // Esempio: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdX..."
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVidHFlbXNhY296Zm1sZnp3aHl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MzM2NzEsImV4cCI6MjA3OTQwOTY3MX0.jZWoN2pRdujeDnTcnFs9y_x-wj9V7oNxuKQ2E_5aKDg";
+        
+        // Endpoint API per leggere l'ULTIMO dato inserito nella tabella 'dht_readings'
+        const API_READ_URL = `${SUPABASE_PROJECT_URL}/rest/v1/dht_readings?select=temperature,humidity,created_at&order=id.desc&limit=1`;
+        
+        // Funzione asincrona per recuperare i dati da Supabase
+        async function fetchData() {
+            try {
+                // Esegue la richiesta GET all'API di Supabase
+                const response = await fetch(API_READ_URL, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                // Converte la risposta in formato JSON
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    const latest = data[0]; // Prende il primo elemento (il più recente)
+                    
+                    // Aggiorna la temperatura e formatta a 1 decimale
+                    document.getElementById('temp-display').textContent = latest.temperature.toFixed(1) + " °C";
+                    
+                    // Aggiorna l'umidità e formatta a 1 decimale
+                    document.getElementById('hum-display').textContent = latest.humidity.toFixed(1) + " %";
+                    
+                    // Formatta l'orario di creazione
+                    const date = new Date(latest.created_at);
+                    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                    document.getElementById('last-update').textContent = date.toLocaleDateString('it-IT', options);
+                } else {
+                    document.getElementById('temp-display').textContent = "Nessun dato trovato in Supabase.";
+                    document.getElementById('hum-display').textContent = "Nessun dato trovato in Supabase.";
+                }
+
+            } catch (error) {
+                console.error("Errore nel recupero dati:", error);
+                document.getElementById('temp-display').textContent = "Errore di connessione o API non valida.";
+            }
+        }
+
+        // 1. Carica i dati appena la pagina si apre
+        fetchData(); 
+        // 2. Aggiorna i dati automaticamente ogni 15 secondi (15000ms)
+        setInterval(fetchData, 15000); 
+    </script>
+</body>
+</html>
